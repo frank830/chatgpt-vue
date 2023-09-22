@@ -28,8 +28,12 @@
           <div
             class="prose text-sm text-slate-600 leading-relaxed"
             v-if="item.content"
-            v-html="md.render(item.content)"
-          ></div>
+          >
+            <div v-for="(choppedContent, index) in chopContent(item.content)">
+              <img :src="imageUrls[index]" alt="">
+              <div v-html="md.render(choppedContent)"></div>
+            </div>
+          </div>
           <Loding v-else />
         </div>
       </div>
@@ -68,6 +72,13 @@ let apiKey = "";
 let isConfig = ref(true);
 let isTalking = ref(false);
 let messageContent = ref("");
+// let imageUrls = [
+//   'image_url_1',
+//   'image_url_2',
+//   'image_url_3',
+//   'image_url_4'
+// ];
+let imageUrls = [];
 const chatListDom = ref<HTMLDivElement>();
 const decoder = new TextDecoder("utf-8");
 const roleAlias = { user: "ME", assistant: "ChatGPT", system: "System" };
@@ -83,6 +94,16 @@ onMounted(() => {
     switchConfigStatus();
   }
 });
+
+const chopContent = (content) => {
+  console.log('content :>> ', content);
+  const maxLen = content.length > 100 ? 25 : content.length / 4;
+  const choppedContent = [];
+  for (let i = 0; i < content.length; i += maxLen) {
+    choppedContent.push(content.slice(i, i + maxLen));
+  }
+  return choppedContent;
+}
 
 const sendChatMessage = async (content: string = messageContent.value) => {
   try {
@@ -149,7 +170,7 @@ const readStream = async (
 const appendLastMessageContent = (content: string) =>
   (messageList.value[messageList.value.length - 1].content += content);
 
-const sendOrSave = () => {
+const sendOrSave = async() => {
   if (!messageContent.value.length) return;
   if (isConfig.value) {
     if (saveAPIKey(messageContent.value.trim())) {
@@ -157,9 +178,44 @@ const sendOrSave = () => {
     }
     clearMessageContent();
   } else {
-    sendChatMessage();
+    await sendChatMessage();
+    await generatePictures(); // comment this line to disable image generation
   }
 };
+
+const generatePictures = async () => { 
+  const content = messageList.value[messageList.value.length - 1].content;
+  const maxLen = content.length > 100 ? 25 : content.length / 4;
+  const choppedContent = [];
+  for (let i = 0; i < content.length; i += maxLen) {
+    let response = await fetchImageBasedOnPrompt(content.slice(i, i + maxLen));
+    console.log('response :>> ', response);
+    this.imageUrls.push(response.url);
+  }
+  return choppedContent;
+};
+
+const fetchImageBasedOnPrompt = async (promptValue) => {
+  try {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "post",
+      // signal: AbortSignal.timeout(8000),
+      // 开启后到达设定时间会中断流式输出
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        prompt: promptValue,
+        n: 1,
+        size: "256x256",
+      }),
+    });
+    return response;
+  } catch (error) {
+    throw error;
+  }
+}
 
 const clickConfig = () => {
   if (!isConfig.value) {
