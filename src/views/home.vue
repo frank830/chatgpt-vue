@@ -29,10 +29,7 @@
             class="prose text-sm text-slate-600 leading-relaxed"
             v-if="item.content"
           >
-            <div v-for="(choppedContent, index) in chopContent(item.content)">
-              <img :src="imageUrls[index]" alt="">
-              <div v-html="md.render(choppedContent)"></div>
-            </div>
+          <story-images v-if="imageUrls.length > 0" :role="item.role" :content="item.content" :imageUrls="imageUrls"></story-images>
           </div>
           <Loding v-else />
         </div>
@@ -67,13 +64,14 @@ import cryptoJS from "crypto-js";
 import Loding from "@/components/Loding.vue";
 import Copy from "@/components/Copy.vue";
 import { md } from "@/libs/markdown";
+import StoryImages from "@/components/StoryImages.vue";
 
 let apiKey = "";
 let isConfig = ref(true);
 let isTalking = ref(false);
 let messageContent = ref("");
 // let imageUrls = [
-//   'image_url_1',
+//   'https://oaidalleapiprodscus.blob.core.windows.net/private/org-0AvhnkQtDNl4PEErORnBAPIc/user-dQ0O1mEguUSu0H8i4bqWbH6F/img-SC4Ke9jdkEhrwO8CkKepNHUW.png?st=2023-09-25T16%3A44%3A19Z&se=2023-09-25T18%3A44%3A19Z&sp=r&sv=2021-08-06&sr=b&rscd=inline&rsct=image/png&skoid=6aaadede-4fb3-4698-a8f6-684d7786b067&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2023-09-24T22%3A42%3A34Z&ske=2023-09-25T22%3A42%3A34Z&sks=b&skv=2021-08-06&sig=1nekswupPp2FXGK9hqduUURB4U5ivNkOQbPFruBIcWY%3D',
 //   'image_url_2',
 //   'image_url_3',
 //   'image_url_4'
@@ -190,7 +188,7 @@ const generatePictures = async () => {
   for (let i = 0; i < content.length; i += maxLen) {
     let response = await fetchImageBasedOnPrompt(content.slice(i, i + maxLen));
     console.log('response :>> ', response);
-    this.imageUrls.push(response.url);
+    imageUrls.push(response.url);
   }
   return choppedContent;
 };
@@ -211,6 +209,7 @@ const fetchImageBasedOnPrompt = async (promptValue) => {
         size: "256x256",
       }),
     });
+    console.log('response line 212:>> ', response);
     return response;
   } catch (error) {
     throw error;
