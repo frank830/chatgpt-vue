@@ -29,6 +29,8 @@
             class="prose text-sm text-slate-600 leading-relaxed"
             v-if="item.content"
           >
+          <!-- Use dummyState to trigger re-render -->
+          <div :key="dummyState"></div>
           <story-images v-if="imageUrls.length > 0" :role="item.role" :content="item.content" :imageUrls="imageUrls"></story-images>
           </div>
           <Loding v-else />
@@ -86,6 +88,8 @@ const messageList = ref<ChatMessage[]>([
     content: "你是 ChatGPT，OpenAI 训练的大型语言模型，尽可能简洁地回答。",
   },
 ]);
+// Define a reactive variable to trigger rerender
+const dummyState = ref(0);
 
 onMounted(() => {
   if (getAPIKey()) {
@@ -187,10 +191,20 @@ const generatePictures = async () => {
   const choppedContent = [];
   for (let i = 0; i < content.length; i += maxLen) {
     let response = await fetchImageBasedOnPrompt(content.slice(i, i + maxLen));
-    console.log('response :>> ', response);
-    imageUrls.push(response.url);
+    const responseData = await response.json();
+    const imageUrl = responseData.data[0].url;
+    imageUrls.push(imageUrl);
   }
+  // Notify Vue to update the rendering
+  forceRerender();
   return choppedContent;
+};
+
+// Function to force Vue to rerender the component
+const forceRerender = () => {
+  // Trigger a dummy state update to force Vue to rerender
+  // You can use a ref or reactive variable for this purpose
+  dummyState.value += 1;
 };
 
 const fetchImageBasedOnPrompt = async (promptValue) => {
@@ -209,7 +223,7 @@ const fetchImageBasedOnPrompt = async (promptValue) => {
         size: "256x256",
       }),
     });
-    console.log('response line 212:>> ', response);
+    // console.log('response line 212:>> ', response.json());
     return response;
   } catch (error) {
     throw error;
