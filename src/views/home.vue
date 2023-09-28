@@ -187,7 +187,8 @@ const sendOrSave = async() => {
 
 const generatePictures = async () => { 
   const content = messageList.value[messageList.value.length - 1].content;
-  const maxLen = content.length > 100 ? 25 : content.length / 4;
+  // const maxLen = content.length > 100 ? 25 : content.length / 4;
+  const maxLen = content.length / 4;
   const choppedContent = [];
   for (let i = 0; i < content.length; i += maxLen) {
     let response = await fetchImageBasedOnPrompt(content.slice(i, i + maxLen));
